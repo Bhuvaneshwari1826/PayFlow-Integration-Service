@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: takaada
+      POSTGRES_PASSWORD: takaada
+      POSTGRES_DB: takaada
+    ports:
+      - "5433:5433"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U takaada -d takaada"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mock-api:
+    build: .
+    command: uvicorn app.integrations.mock_server:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  app:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgresql+asyncpg://takaada:takaada@db:5433/takaada
+      DATABASE_URL_SYNC: postgresql+psycopg2://takaada:takaada@db:5433/takaada
+      EXTERNAL_API_BASE_URL: http://mock-api:8001
+    depends_on:
+      db:
+        condition: service_healthy
+      mock-api:
+        condition: service_started
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
