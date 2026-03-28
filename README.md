@@ -1,5 +1,6 @@
-# Takaada Integration Service
+# PayFlow Integration Service
 
+Takaada Integration Service
 A production-grade integration service that syncs customer, invoice, and payment data from an external accounting system, stores it locally in PostgreSQL, and exposes financial receivables insights via a REST API.
 
 ---
